@@ -1,102 +1,47 @@
-var ANIMATION_SPEED = 100;
+/* jshint browser: true */
+/* jshint -W097 */
+/* global $ */
+/* global Graphics */
+/* global Style */
+/* global SortedArray */
 
-var points = [];
-var pointsXSort = new SortedArray("x");
-var pointsYSort = new SortedArray("y");
+"use strict";
 
-var canvas;
-var context;
+function PointGenerator(f, maxPoints, pointsAtATime, canvas) {
+    this.generate = f;
+    this.maxPoints = maxPoints;
+    this.pointsAtATime = pointsAtATime;
+    this.points = [];
+    this.pointsXSort = new SortedArray("x");
+    this.pointsYSort = new SortedArray("y");
+    this.pointsDistSort = new SortedArray("dist");
 
-canvas = document.querySelector("#random canvas");
-context = canvas.getContext("2d");
+    this.graphics = new Graphics(canvas, 2, 2);
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-var smaller = Math.min(window.innerWidth, window.innerHeight);
-
-pointAreaWidth = smaller;
-pointAreaHeight = smaller;
-
-var SCALE = 5;
-
-setInterval(generatePoint, ANIMATION_SPEED, boxMullerNormal);
-
-function generatePoint(randomPoint) {
-    var point = randomPoint();
-    points.push(point);
-
-    pointsYSort.add(point);
-    pointsXSort.add(point);
-
-    draw();
+    this.graphics.addToFrame(0, 0, 1, 2, "Points", this.graphics.drawPoints(this.points, f.min, f.max), new Style({fillStyle : "rgba(150,0,0,.50)"}));
+    this.graphics.addToFrame(0, 0, 1, 2, "", this.graphics.drawCenteredUnitOval(f.min, f.max, 1));
+    this.graphics.addToFrame(0, 0, 1, 2, "", this.graphics.drawCenteredUnitOval(f.min, f.max, 2));
+    this.graphics.addToFrame(1, 0, 1, 1, "X distribution", this.graphics.drawDistribution(this.pointsXSort, f.min, f.max, 0.25));
+    this.graphics.addToFrame(1, 1, 1, 1, "Distance from center", this.graphics.drawDistribution(this.pointsDistSort, f.min, f.max, 0.25));
 }
 
-
-function draw() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    drawStandardDev(1, 4);
-    drawStandardDev(2, 2);
-    drawPoints();
-
-    drawDistribution(pointsXSort, pointAreaWidth, canvas.height/2, canvas.width - pointAreaWidth, canvas.height / 2);
-    drawDistribution(pointsYSort, pointAreaWidth, canvas.height, canvas.width - pointAreaWidth, canvas.height / 2);
-}
-
-function drawStandardDev(devs, lineWidth) {
-    context.lineWidth = lineWidth;
-    context.strokeStyle = "#888888";
-    context.beginPath();
-    context.ellipse(pointAreaWidth / 2, pointAreaHeight / 2, devs * pointAreaWidth / SCALE, devs * pointAreaHeight / SCALE, 0, 0, 2 * Math.PI);
-    context.stroke();
-}
-
-function drawPoints() {
-    context.save();
-
-    context.translate(pointAreaWidth/2, pointAreaHeight/2);
-
-    points.forEach(function(point) {
-        context.beginPath();
-        context.arc(point.x * pointAreaWidth / SCALE, point.y * pointAreaHeight / SCALE, 1, 0, 2 * Math.PI + 1);
-        context.fill();
-    });
-
-    context.restore();
-}
-
-function drawDistribution(sortedArr, x, y, width, height) {
-    context.save();
-    context.translate(x, y);
-
-    context.lineStyle = "#DDDDDD";
-
-    var prev = -5;
-
-    context.lineCap = "round";
-    context.lineJoin = "round";
-
-    context.moveTo(0, 0);
-
-    var increment = 0.25;
-
-    var max = 5;
-    var min = -5;
-
-    for(var i = min; i <= max; i += increment) {
-        var amount = sortedArr.getRangeCount(prev, i); // / sortedArr.objects.length;
-        var xPos = (i + max) / (Math.abs(min) + max) * width;
-
-        var yPos = -amount / sortedArr.objects.length * height * 5;
-
-        context.lineTo(xPos, yPos);
-        prev = i;
+PointGenerator.prototype.start = function() {
+    if(this.points.length > this.maxPoints) {
+        return;
     }
 
-    context.stroke();
-    context.restore();
-}
+    for(var i = 0; i < this.pointsAtATime; i++) {
+        var point = this.generate();
+        point.dist = Math.sqrt(point.x * point.x + point.y * point.y);
+        this.points.push(point);
+
+        this.pointsYSort.add(point);
+        this.pointsXSort.add(point);
+        this.pointsDistSort.add(point);
+    }
+
+    setTimeout(this.start.bind(this), this.interval);
+};
 
 function boxMullerNormal() {
     var U = Math.random();
@@ -108,43 +53,22 @@ function boxMullerNormal() {
     return {x : X, y : Y};
 }
 
-function SortedArray(prop) {
-    this.objects = [];
-    this.prop = prop;
+function uniform() {
+    return {x : Math.random(), y : Math.random()};
 }
 
-SortedArray.prototype.add = function(o) {
-	var i = this.objects.length;
+$(function() {
+    var randomNormalCanvas = document.querySelector("#random-normal canvas");
+    var randomUniformCanvas = document.querySelector("#random-uniform canvas");
 
-	while(i > 0 &&  o[this.prop] < this.objects[i - 1][this.prop]) {
-		i--;
-	}
+    boxMullerNormal.min = -6;
+    boxMullerNormal.max = 6;
+    var normalGenerator = new PointGenerator(boxMullerNormal, 10000, 1, randomNormalCanvas);
+    normalGenerator.start();
 
-	this.objects.splice(i, 0, o);
-};
+    uniform.min = 0;
+    uniform.max = 1;
+    var uniformGenerator = new PointGenerator(uniform, 10000, 1, randomUniformCanvas);
+    uniformGenerator.start();
 
-SortedArray.prototype.closestIndexOf = function(val) {
-    var left = 0;
-    var right = this.objects.length - 1;
-    var mid = 0;
-
-    while(left < right) {
-        mid = Math.floor((right + left) / 2);
-
-        if(this.objects[mid][this.prop] < val) {
-            left = mid + 1;
-        } else {
-            right = mid;
-        }
-    }
-
-    return mid;
-};
-
-SortedArray.prototype.getRangeCount = function(start, end) {
-    return this.closestIndexOf(end) - this.closestIndexOf(start) + 1;
-};
-
-while(points.length < 100) {
-    generatePoint(boxMullerNormal);
-}
+});
