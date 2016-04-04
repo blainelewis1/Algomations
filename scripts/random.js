@@ -3,7 +3,9 @@
 /* global $ */
 /* global Graphics */
 /* global Style */
+/* global Frame */
 /* global SortedArray */
+/* global MathGraphics */
 
 "use strict";
 
@@ -18,11 +20,20 @@ function PointGenerator(f, maxPoints, pointsAtATime, canvas) {
 
     this.graphics = new Graphics(canvas, 2, 2);
 
-    this.graphics.addToFrame(0, 0, 1, 2, "Points", this.graphics.drawPoints(this.points, f.min, f.max), new Style({fillStyle : "rgba(150,0,0,.50)"}));
-    this.graphics.addToFrame(0, 0, 1, 2, "", this.graphics.drawCenteredUnitOval(f.min, f.max, 1));
-    this.graphics.addToFrame(0, 0, 1, 2, "", this.graphics.drawCenteredUnitOval(f.min, f.max, 2));
-    this.graphics.addToFrame(1, 0, 1, 1, "X distribution", this.graphics.drawDistribution(this.pointsXSort, f.min, f.max, 0.25));
-    this.graphics.addToFrame(1, 1, 1, 1, "Distance from center", this.graphics.drawDistribution(this.pointsDistSort, f.min, f.max, 0.25));
+    var pointsFrame = new Frame(0, 0, 1, 2, "Points", new Style({fillStyle : "rgba(150,0,0,.50)"}))
+        .add(new MathGraphics.Points(this.points, f.min, f.max))
+        .add(new MathGraphics.CenteredUnitOval(f.min, f.max, 2))
+        .add(new MathGraphics.CenteredUnitOval(f.min, f.max, 1));
+
+    var xDistributionFrame = new Frame(1,0,1,1, "X Distribution")
+        .add(new MathGraphics.Distribution(this.pointsXSort, f.min, f.max, MathGraphics.barGraph));
+
+    var distDistributionFrame = new Frame(1,1,1,1, "Distance from center")
+        .add(new MathGraphics.Distribution(this.pointsDistSort, f.min, f.max, MathGraphics.lineGraph));
+
+    this.graphics.addFrame(pointsFrame);
+    this.graphics.addFrame(xDistributionFrame);
+    this.graphics.addFrame(distDistributionFrame);
 }
 
 PointGenerator.prototype.start = function() {
@@ -39,6 +50,8 @@ PointGenerator.prototype.start = function() {
         this.pointsXSort.add(point);
         this.pointsDistSort.add(point);
     }
+
+    this.graphics.drawFrames();
 
     setTimeout(this.start.bind(this), this.interval);
 };
@@ -59,16 +72,17 @@ function uniform() {
 
 $(function() {
     var randomNormalCanvas = document.querySelector("#random-normal canvas");
-    var randomUniformCanvas = document.querySelector("#random-uniform canvas");
 
-    boxMullerNormal.min = -6;
-    boxMullerNormal.max = 6;
+    boxMullerNormal.min = -4;
+    boxMullerNormal.max = 4;
     var normalGenerator = new PointGenerator(boxMullerNormal, 10000, 1, randomNormalCanvas);
     normalGenerator.start();
+
+    var randomUniformCanvas = document.querySelector("#random-uniform canvas");
 
     uniform.min = 0;
     uniform.max = 1;
     var uniformGenerator = new PointGenerator(uniform, 10000, 1, randomUniformCanvas);
-    uniformGenerator.start();
 
+    uniformGenerator.start();
 });
