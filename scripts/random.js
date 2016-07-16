@@ -9,6 +9,8 @@
 
 "use strict";
 
+//TODO: what about resetting?
+
 function PointGenerator(f, maxPoints, pointsAtATime, canvas) {
     this.generate = f;
     this.maxPoints = maxPoints;

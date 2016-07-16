@@ -38,7 +38,7 @@ GridGenerator.prototype.start = function() {
         this.y++;
     }
 
-    this.grid[this.y][this.x] = Math.random() > 0.5 ? "#444444": "#CCCCCC";
+    this.grid[this.y][this.x] = Math.random() > 0.5 ? WALL : GROUND;
 
     this.x++;
 
@@ -49,5 +49,5 @@ GridGenerator.prototype.start = function() {
 $(function() {
     var canvas = document.querySelector("#grid canvas");
     var uniformRandomGenerator = new GridGenerator(20, 10, 10, canvas);
-    uniformRandomGenerator.start();
+    //uniformRandomGenerator.start();
 });
