@@ -5,7 +5,6 @@
 
 "use strict";
 
-//TODO: stop cells from intersecting with each other?
 function Graphics(canvas, columns, rows) {
     this.canvas = canvas;
     this.context = canvas.getContext("2d");
